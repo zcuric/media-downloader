@@ -13,7 +13,7 @@ struct DownloadInputView: View {
         HStack(spacing: 12) {
             PasteAwareTextField(
                 text: $text,
-                placeholder: "Paste URL",
+                placeholder: "Paste Instagram, X, or YouTube URL",
                 onSubmit: onSubmit,
                 onPaste: onPaste
             )

@@ -125,7 +125,7 @@ final class TrimTimelineControl: NSView {
     }
 
     private var frameStripRect: CGRect {
-        timelineRect.insetBy(dx: handleWidth + 2, dy: 7)
+        timelineRect.insetBy(dx: handleWidth + 2, dy: borderWidth / 2)
     }
 
     private var selectedStartX: CGFloat {
@@ -199,11 +199,19 @@ final class TrimTimelineControl: NSView {
 
     private func drawPlayhead(in rect: CGRect) {
         guard selection.end > selection.start else { return }
+        guard dragTarget != .startHandle, dragTarget != .endHandle else {
+            return
+        }
+
         guard playheadTime > selection.start + 0.001, playheadTime < selection.end - 0.001 else {
             return
         }
 
         let x = clampedPlayheadX
+        guard abs(x - selectedStartX) > 1, abs(x - selectedEndX) > 1 else {
+            return
+        }
+
         NSColor.red.setFill()
         CGRect(
             x: x - 0.5,
@@ -316,7 +324,14 @@ final class TrimTimelineControl: NSView {
             )
         }
 
-        image.draw(in: rect, from: sourceRect, operation: .sourceOver, fraction: 1)
+        image.draw(
+            in: rect,
+            from: sourceRect,
+            operation: .sourceOver,
+            fraction: 1,
+            respectFlipped: true,
+            hints: nil
+        )
     }
 
     private func hitTarget(at point: CGPoint) -> DragTarget? {
@@ -353,15 +368,11 @@ final class TrimTimelineControl: NSView {
         switch dragTarget {
         case .startHandle:
             selection.start = min(max(seconds, 0), selection.end - minRangeDuration)
-            if playheadTime < selection.start {
-                playheadTime = selection.start
-            }
+            playheadTime = selection.start
             selectionDidChange?(selection, selection.start)
         case .endHandle:
             selection.end = max(min(seconds, duration), selection.start + minRangeDuration)
-            if playheadTime > selection.end {
-                playheadTime = selection.end
-            }
+            playheadTime = selection.end
             selectionDidChange?(selection, selection.end)
         case .playhead:
             let clamped = min(max(seconds, selection.start), selection.end)

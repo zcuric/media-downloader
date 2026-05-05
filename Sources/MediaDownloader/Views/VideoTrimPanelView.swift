@@ -62,7 +62,7 @@ struct VideoTrimPanelView: View {
                     frames: timelineFrames,
                     onSeek: seekPreview
                 )
-                .frame(width: 632, height: 60)
+                .frame(width: 640, height: 60)
             }
             .padding(.bottom, 12)
         }
@@ -193,14 +193,23 @@ struct VideoTrimPanelView: View {
     }
 
     private func seekPreview(_ seconds: Double) {
-        player.pause()
-        isPlaying = false
+        let shouldResumePlayback = isPlaying
+        if !shouldResumePlayback {
+            player.pause()
+        }
+
         playheadTime = seconds
         player.seek(
             to: CMTime(seconds: seconds, preferredTimescale: 600),
             toleranceBefore: .zero,
             toleranceAfter: .zero
-        )
+        ) { finished in
+            guard finished, shouldResumePlayback else { return }
+            DispatchQueue.main.async {
+                player.play()
+                isPlaying = true
+            }
+        }
     }
 
     private func copyTrim() {

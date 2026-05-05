@@ -23,7 +23,6 @@ struct ContentView: View {
                     onChooseFolder: model.chooseDownloadFolder
                 )
                 .opacity(inputAppeared ? 1 : 0)
-                .scaleEffect(inputAppeared ? 1 : 0.965)
                 .blur(radius: inputAppeared ? 0 : 7)
 
                 if let session = displayedTrimSession {
@@ -112,6 +111,19 @@ struct ContentView: View {
 
     private func runTrimModeTransition(to session: ActiveTrimSession?) {
         let generation = nextTransitionGeneration()
+
+        if let session, displayedTrimSession != nil {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+
+            withTransaction(transaction) {
+                displayedTrimSession = session
+                trimAppeared = true
+                historyAppeared = true
+            }
+
+            return
+        }
 
         withAnimation(.easeOut(duration: 0.12)) {
             historyAppeared = false

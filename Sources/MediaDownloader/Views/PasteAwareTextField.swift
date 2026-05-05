@@ -16,7 +16,7 @@ struct PasteAwareTextField: NSViewRepresentable {
         textField.drawsBackground = false
         textField.isEditable = true
         textField.isSelectable = true
-        textField.font = .systemFont(ofSize: 26, weight: .regular)
+        textField.font = .systemFont(ofSize: 21, weight: .regular)
         textField.textColor = .labelColor
         textField.setAdaptivePlaceholder(placeholder)
         textField.lineBreakMode = .byTruncatingMiddle
@@ -96,7 +96,7 @@ final class PastingTextField: NSTextField {
             string: value,
             attributes: [
                 .foregroundColor: NSColor.labelColor.withAlphaComponent(0.62),
-                .font: NSFont.systemFont(ofSize: 26, weight: .regular)
+                .font: NSFont.systemFont(ofSize: 21, weight: .regular)
             ]
         )
     }
