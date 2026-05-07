@@ -32,6 +32,7 @@ struct ContentView: View {
                     onPaste: model.handlePasteCandidate,
                     onChooseFolder: model.chooseDownloadFolder,
                     onClearHistory: model.clearHistory,
+                    onOpenSettings: model.showSettings,
                     onFocusHistory: focusFirstHistoryItem
                 )
                 .opacity(inputAppeared ? 1 : 0)
@@ -351,19 +352,28 @@ struct ContentView: View {
             return true
         }
 
+        if model.hotKeyShortcut(for: .activateApp).matches(event) {
+            focusInputField()
+            return true
+        }
+
         guard historySelectionIndex != nil else { return false }
 
+        if model.hotKeyShortcut(for: .copy).matches(event) {
+            copySelectedHistoryItem()
+            return true
+        }
+
+        if model.hotKeyShortcut(for: .openTrim).matches(event) {
+            editSelectedHistoryItem()
+            return true
+        }
+
         switch event.keyCode {
-        case 126:
+        case 126 where event.modifierFlags.shortcutModifiers.isEmpty:
             selectPreviousHistoryItem()
-        case 125:
+        case 125 where event.modifierFlags.shortcutModifiers.isEmpty:
             selectNextHistoryItem()
-        case 36, 76:
-            if event.modifierFlags.contains(.command) {
-                editSelectedHistoryItem()
-            } else {
-                copySelectedHistoryItem()
-            }
         default:
             return false
         }

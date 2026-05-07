@@ -19,6 +19,7 @@ Media Downloader lets you download, quickly copy, reveal, and trim videos from s
 - Copy files again, reveal them in Finder, or open the original source URL from history.
 - Trim downloaded videos and either save the trimmed MP4 or copy the trimmed clip.
 - Choose and persist a custom download folder.
+- Check GitHub Releases for app updates from the settings menu.
 
 ## Local Development Requirements
 
@@ -75,6 +76,26 @@ Useful local development script modes:
 ./script/build_and_run.sh --setup
 ```
 
+## Release Build, Signing, and Notarization
+
+The app checks `https://api.github.com/repos/pixel-point/media-downloader/releases/latest` for updates and compares the latest release tag, such as `v0.1.0`, with `CFBundleShortVersionString`.
+
+Release credentials should live in a local `.env` file copied from `.env.example`. Do not commit `.env`, `.p8`, `.p12`, certificates, provisioning profiles, or private keys; the repo ignores them.
+
+To create and publish signed, notarized macOS zip and drag-to-Applications DMG artifacts:
+
+```sh
+./script/release_macos.sh v0.1.0
+```
+
+To create local signed and notarized artifacts without publishing a GitHub release:
+
+```sh
+./script/package_macos.sh
+```
+
+The release script runs tests, builds a release `.app`, signs it with hardened runtime, submits it to Apple notarization, staples the ticket, creates `dist/release/MediaDownloader-macos-<arch>.zip` and `dist/release/MediaDownloader-macos-<arch>.dmg`, and uploads both artifacts to the matching GitHub release. The DMG contains `MediaDownloader.app` and an `Applications` shortcut for the standard drag-to-install flow.
+
 ## How It Works
 
 Media Downloader uses `yt-dlp` to fetch media and `ffmpeg` to merge, convert, trim, and export video files. Downloads are saved to the selected local folder. App preferences are stored in `UserDefaults`, while history and generated thumbnails are stored under the app's Application Support directory.
@@ -85,6 +106,7 @@ Media Downloader uses `yt-dlp` to fetch media and `ffmpeg` to merge, convert, tr
 - `Sources/MediaDownloader` - macOS app source code.
 - `Tests/MediaDownloaderTests` - unit tests.
 - `script/build_and_run.sh` - local build, bundle, launch, debug, and logging helper.
+- `script/create_dmg.sh` - creates the drag-to-Applications DMG from a built app bundle.
 - `dist/` - generated local app bundle output.
 
 ## Notes

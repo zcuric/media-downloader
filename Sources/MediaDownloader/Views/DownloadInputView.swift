@@ -9,6 +9,7 @@ struct DownloadInputView: View {
     let onPaste: () -> Void
     let onChooseFolder: () -> Void
     let onClearHistory: () -> Void
+    let onOpenSettings: () -> Void
     let onFocusHistory: () -> Void
     @State private var isHovering = false
 
@@ -32,7 +33,8 @@ struct DownloadInputView: View {
             InputSettingsButton(
                 folderName: folderName,
                 onChooseFolder: onChooseFolder,
-                onClearHistory: onClearHistory
+                onClearHistory: onClearHistory,
+                onOpenSettings: onOpenSettings
             )
             .opacity(isHovering ? 1 : 0)
             .allowsHitTesting(isHovering)
@@ -55,6 +57,7 @@ private struct InputSettingsButton: View {
     let folderName: String
     let onChooseFolder: () -> Void
     let onClearHistory: () -> Void
+    let onOpenSettings: () -> Void
 
     var body: some View {
         Button(action: showMenu) {
@@ -75,7 +78,9 @@ private struct InputSettingsButton: View {
 
         let menu = NSMenu()
         menu.autoenablesItems = false
+        menu.addItem(actionItem(title: "Settings", systemImage: "gearshape", action: onOpenSettings))
         menu.addItem(actionItem(title: "Change Folder", systemImage: "folder", action: onChooseFolder))
+        menu.addItem(.separator())
         menu.addItem(actionItem(title: "Clear History", systemImage: "trash", action: onClearHistory))
 
         let pointInWindow = NSPoint(

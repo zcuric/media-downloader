@@ -18,13 +18,30 @@ enum MediaDownloaderApp {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = AppModel()
+    private let preferences = PreferencesStore()
     private var window: SpotlightWindow?
     private var setupWindow: SpotlightWindow?
     private var dependencyStatus = DependencyChecker.check()
     private let forceSetupWindow = ProcessInfo.processInfo.arguments.contains("--show-dependency-setup")
     private var didPassForcedSetup = false
+    private lazy var activationHotKey = GlobalHotKeyManager { [weak self] in
+        self?.presentReadyWindow(activate: true)
+    }
+    private var hotKeyObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        activationHotKey.registerActivationHotKey(preferences.hotKeyShortcut(for: .activateApp))
+        hotKeyObserver = NotificationCenter.default.addObserver(
+            forName: .mediaDownloaderHotKeysDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard notification.object as? HotKeyAction == .activateApp else { return }
+
+            Task { @MainActor [weak self] in
+                self?.updateActivationHotKey()
+            }
+        }
         presentReadyWindow(activate: true)
     }
 
@@ -66,6 +83,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if activate {
             NSApp.activate(ignoringOtherApps: true)
         }
+
+        model.checkForUpdates(manual: false)
     }
 
     private func presentSetupWindow(activate: Bool) {
@@ -184,6 +203,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             width: min(860, max(760, visibleFrame.width - 32)),
             height: min(1060, max(760, visibleFrame.height - 24))
         )
+    }
+
+    private func updateActivationHotKey() {
+        activationHotKey.registerActivationHotKey(preferences.hotKeyShortcut(for: .activateApp))
     }
 }
 
