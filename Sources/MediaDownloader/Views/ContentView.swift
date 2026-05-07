@@ -31,6 +31,7 @@ struct ContentView: View {
                     onSubmit: model.submitInput,
                     onPaste: model.handlePasteCandidate,
                     onChooseFolder: model.chooseDownloadFolder,
+                    onClearHistory: model.clearHistory,
                     onFocusHistory: focusFirstHistoryItem
                 )
                 .opacity(inputAppeared ? 1 : 0)

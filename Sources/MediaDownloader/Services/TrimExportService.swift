@@ -28,19 +28,30 @@ actor TrimExportService {
             withIntermediateDirectories: true
         )
 
-        let arguments = [
-            "ffmpeg",
-            "-y",
-            "-ss", formatTime(selection.start),
-            "-i", sourceURL.path,
-            "-t", formatTime(selection.end - selection.start),
-            "-c", "copy",
-            "-movflags", "+faststart",
-            outputURL.path
-        ]
+        let arguments = Self.exportArguments(sourceURL: sourceURL, selection: selection, outputURL: outputURL)
 
         try await runProcess(executable: "/usr/bin/env", arguments: arguments)
         return outputURL
+    }
+
+    nonisolated static func exportArguments(sourceURL: URL, selection: TrimSelection, outputURL: URL) -> [String] {
+        [
+            "ffmpeg",
+            "-y",
+            "-i", sourceURL.path,
+            "-ss", formatTime(selection.start),
+            "-t", formatTime(selection.end - selection.start),
+            "-map", "0:v:0",
+            "-map", "0:a?",
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "18",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-movflags", "+faststart",
+            outputURL.path
+        ]
     }
 
     func saveURL(for sourceURL: URL, selection: TrimSelection) -> URL {
@@ -63,7 +74,7 @@ actor TrimExportService {
             .appendingPathExtension("mp4")
     }
 
-    private func formatTime(_ seconds: Double) -> String {
+    private nonisolated static func formatTime(_ seconds: Double) -> String {
         String(format: "%.3f", seconds)
     }
 

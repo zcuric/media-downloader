@@ -15,8 +15,8 @@ final class PreferencesStore {
             }
 
             let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
-            return downloads?.appendingPathComponent("Media Downloader", isDirectory: true)
-                ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Downloads/Media Downloader", isDirectory: true)
+            return downloads
+                ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Downloads", isDirectory: true)
         }
         set {
             defaults.set(newValue.path, forKey: key)

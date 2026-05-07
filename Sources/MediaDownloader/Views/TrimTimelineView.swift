@@ -74,7 +74,11 @@ final class TrimTimelineControl: NSView {
     private let borderWidth: CGFloat = 4
     private let cornerRadius: CGFloat = 9
     private let minRangeDuration: Double = 0.25
+    private let dragActivationDistance: CGFloat = 3
     private var dragTarget: DragTarget?
+    private var dragStartPoint: CGPoint?
+    private var dragOffsetX: CGFloat = 0
+    private var dragDidActivate = false
 
     override var isFlipped: Bool {
         true
@@ -103,21 +107,48 @@ final class TrimTimelineControl: NSView {
         window?.makeFirstResponder(self)
         let point = convert(event.locationInWindow, from: nil)
         dragTarget = hitTarget(at: point)
+        dragStartPoint = point
+        dragDidActivate = false
+        dragOffsetX = 0
 
         if dragTarget == nil, timelineRect.contains(point) {
             dragTarget = .playhead
         }
 
-        updateDrag(at: point)
+        switch dragTarget {
+        case .startHandle:
+            dragOffsetX = point.x - selectedStartX
+            previewHandleFrame(at: selection.start)
+        case .endHandle:
+            dragOffsetX = point.x - selectedEndX
+            previewHandleFrame(at: selection.end)
+        case .playhead:
+            dragDidActivate = true
+            updateDrag(at: point)
+        case nil:
+            break
+        }
     }
 
     override func mouseDragged(with event: NSEvent) {
-        updateDrag(at: convert(event.locationInWindow, from: nil))
+        let point = convert(event.locationInWindow, from: nil)
+
+        if !dragDidActivate {
+            guard let dragStartPoint else { return }
+            let distance = hypot(point.x - dragStartPoint.x, point.y - dragStartPoint.y)
+            guard distance >= dragActivationDistance else { return }
+            dragDidActivate = true
+        }
+
+        updateDrag(at: point)
     }
 
     override func mouseUp(with event: NSEvent) {
-        updateDrag(at: convert(event.locationInWindow, from: nil))
         dragTarget = nil
+        dragStartPoint = nil
+        dragOffsetX = 0
+        dragDidActivate = false
+        needsDisplay = true
     }
 
     private var timelineRect: CGRect {
@@ -364,23 +395,30 @@ final class TrimTimelineControl: NSView {
             return
         }
 
-        let seconds = time(for: point.x)
-
         switch dragTarget {
         case .startHandle:
+            let seconds = time(for: point.x - dragOffsetX)
             selection.start = min(max(seconds, 0), selection.end - minRangeDuration)
             playheadTime = selection.start
             selectionDidChange?(selection, selection.start)
         case .endHandle:
+            let seconds = time(for: point.x - dragOffsetX)
             selection.end = max(min(seconds, duration), selection.start + minRangeDuration)
             playheadTime = selection.end
             selectionDidChange?(selection, selection.end)
         case .playhead:
+            let seconds = time(for: point.x)
             let clamped = min(max(seconds, selection.start), selection.end)
             playheadTime = clamped
             playheadDidChange?(clamped)
         }
 
+        needsDisplay = true
+    }
+
+    private func previewHandleFrame(at seconds: Double) {
+        playheadTime = seconds
+        selectionDidChange?(selection, seconds)
         needsDisplay = true
     }
 

@@ -85,6 +85,12 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func clearHistory() {
+        history.removeAll()
+        historyStore.save(history)
+        activeTrimSession = nil
+    }
+
     func editTrim(_ item: DownloadItem) {
         activeTrimSession = ActiveTrimSession(item: item)
     }

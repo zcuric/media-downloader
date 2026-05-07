@@ -19,6 +19,7 @@ struct VideoTrimPanelView: View {
     @State private var timelineFrames: [NSImage] = []
     @State private var playheadTime: Double = 0
     @State private var timeObserver: Any?
+    @State private var boundaryObserver: Any?
     @State private var copySucceeded = false
 
     var body: some View {
@@ -80,9 +81,12 @@ struct VideoTrimPanelView: View {
         .onChange(of: playbackCommand) { _, _ in
             togglePlayback()
         }
+        .onChange(of: selection) { _, _ in
+            updatePlaybackBoundsForSelection()
+        }
         .onDisappear {
             player.pause()
-            removeTimeObserver()
+            removePlaybackObservers()
         }
     }
 
@@ -134,15 +138,22 @@ struct VideoTrimPanelView: View {
     }
 
     private func loadVideo() {
-        removeTimeObserver()
+        removePlaybackObservers()
         player.replaceCurrentItem(with: AVPlayerItem(url: session.fileURL))
         timeObserver = player.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.05, preferredTimescale: 600),
+            forInterval: CMTime(seconds: 0.02, preferredTimescale: 600),
             queue: .main
         ) { time in
             let seconds = CMTimeGetSeconds(time)
             guard seconds.isFinite else { return }
-            playheadTime = seconds
+
+            let boundedSelection = selection.clamped(to: duration)
+            if isPlaying, seconds >= boundedSelection.end - 0.001 {
+                stopPlaybackAtSelectionEnd()
+                return
+            }
+
+            playheadTime = min(max(seconds, boundedSelection.start), boundedSelection.end)
         }
 
         Task {
@@ -153,13 +164,23 @@ struct VideoTrimPanelView: View {
             selection = TrimSelection(start: 0, end: duration)
             playheadTime = 0
             timelineFrames = await generateTimelineFrames(asset: asset, duration: duration)
+            installEndBoundaryObserver()
         }
     }
 
-    private func removeTimeObserver() {
+    private func removePlaybackObservers() {
         if let timeObserver {
             player.removeTimeObserver(timeObserver)
             self.timeObserver = nil
+        }
+
+        removeEndBoundaryObserver()
+    }
+
+    private func removeEndBoundaryObserver() {
+        if let boundaryObserver {
+            player.removeTimeObserver(boundaryObserver)
+            self.boundaryObserver = nil
         }
     }
 
@@ -171,6 +192,8 @@ struct VideoTrimPanelView: View {
         return await Task.detached(priority: .userInitiated) {
             let generator = AVAssetImageGenerator(asset: asset)
             generator.appliesPreferredTrackTransform = true
+            generator.requestedTimeToleranceBefore = .zero
+            generator.requestedTimeToleranceAfter = .zero
             generator.maximumSize = CGSize(width: 180, height: 110)
 
             let frameCount = 18
@@ -191,20 +214,23 @@ struct VideoTrimPanelView: View {
             player.pause()
             isPlaying = false
         } else {
-            player.play()
-            isPlaying = true
+            startBoundedPlayback()
         }
     }
 
     private func seekPreview(_ seconds: Double) {
-        let shouldResumePlayback = isPlaying
+        let boundedSelection = selection.clamped(to: duration)
+        let boundedSeconds = min(max(seconds, boundedSelection.start), boundedSelection.end)
+        let shouldResumePlayback = isPlaying && boundedSeconds < boundedSelection.end - 0.001
+
         if !shouldResumePlayback {
             player.pause()
+            isPlaying = false
         }
 
-        playheadTime = seconds
+        playheadTime = boundedSeconds
         player.seek(
-            to: CMTime(seconds: seconds, preferredTimescale: 600),
+            to: CMTime(seconds: boundedSeconds, preferredTimescale: 600),
             toleranceBefore: .zero,
             toleranceAfter: .zero
         ) { finished in
@@ -214,6 +240,76 @@ struct VideoTrimPanelView: View {
                 isPlaying = true
             }
         }
+    }
+
+    private func startBoundedPlayback() {
+        let boundedSelection = selection.clamped(to: duration)
+        guard boundedSelection.end > boundedSelection.start else { return }
+
+        installEndBoundaryObserver()
+
+        let currentSeconds = CMTimeGetSeconds(player.currentTime())
+        let startSeconds: Double
+        if currentSeconds.isFinite,
+           currentSeconds >= boundedSelection.start,
+           currentSeconds < boundedSelection.end - 0.001 {
+            startSeconds = currentSeconds
+        } else {
+            startSeconds = boundedSelection.start
+        }
+
+        playheadTime = startSeconds
+        player.seek(
+            to: CMTime(seconds: startSeconds, preferredTimescale: 600),
+            toleranceBefore: .zero,
+            toleranceAfter: .zero
+        ) { finished in
+            guard finished else { return }
+            DispatchQueue.main.async {
+                player.play()
+                isPlaying = true
+            }
+        }
+    }
+
+    private func updatePlaybackBoundsForSelection() {
+        installEndBoundaryObserver()
+
+        guard isPlaying else { return }
+
+        let boundedSelection = selection.clamped(to: duration)
+        let currentSeconds = CMTimeGetSeconds(player.currentTime())
+        guard currentSeconds.isFinite else { return }
+
+        if currentSeconds >= boundedSelection.end - 0.001 {
+            stopPlaybackAtSelectionEnd()
+        } else if currentSeconds < boundedSelection.start {
+            seekPreview(boundedSelection.start)
+        }
+    }
+
+    private func installEndBoundaryObserver() {
+        removeEndBoundaryObserver()
+
+        let boundedSelection = selection.clamped(to: duration)
+        guard boundedSelection.end > boundedSelection.start else { return }
+
+        let endTime = CMTime(seconds: boundedSelection.end, preferredTimescale: 600)
+        boundaryObserver = player.addBoundaryTimeObserver(forTimes: [NSValue(time: endTime)], queue: .main) {
+            stopPlaybackAtSelectionEnd()
+        }
+    }
+
+    private func stopPlaybackAtSelectionEnd() {
+        let endSeconds = selection.clamped(to: duration).end
+        player.pause()
+        isPlaying = false
+        playheadTime = endSeconds
+        player.seek(
+            to: CMTime(seconds: endSeconds, preferredTimescale: 600),
+            toleranceBefore: .zero,
+            toleranceAfter: .zero
+        )
     }
 
     private func copyTrim() {
