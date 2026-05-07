@@ -1,7 +1,7 @@
 <p align="center"><img width="128" height="128" alt="Frame 2147227910" src="https://github.com/user-attachments/assets/ee37ab6e-2903-4374-8ff1-b6ef071f28f7" /></p>
 
 <h1 align="center">Media Downloader</h1>
-<p align="center"><a href="https://github.com/pixel-point/media-downloader/releases/download/v0.2.0/MediaDownloader-0.2.0-macos-arm64.dmg">Download for macOS</a></p>
+<p align="center"><a href="https://github.com/pixel-point/media-downloader/releases/latest/download/MediaDownloader-macos-arm64.dmg">Download for macOS</a></p>
 
 https://github.com/user-attachments/assets/c81f8c07-835d-4d37-87cf-926caa0fe6c1
 
