@@ -181,7 +181,7 @@ private final class GeneralSettingsCard: NSView {
         let normalizedVersion = version?.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard let normalizedVersion, !normalizedVersion.isEmpty else {
-            return "v0.1.0"
+            return "v0.2.0"
         }
 
         return normalizedVersion.lowercased().hasPrefix("v")

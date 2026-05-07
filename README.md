@@ -1,7 +1,7 @@
 <p align="center"><img width="128" height="128" alt="Frame 2147227910" src="https://github.com/user-attachments/assets/ee37ab6e-2903-4374-8ff1-b6ef071f28f7" /></p>
 
 <h1 align="center">Media Downloader</h1>
-<p align="center"><a href="https://github.com/pixel-point/media-downloader/releases/download/v0.1.0/MediaDownloader-0.1.0-macos-arm64.zip">Download for macOS</a></p>
+<p align="center"><a href="https://github.com/pixel-point/media-downloader/releases/download/v0.2.0/MediaDownloader-0.2.0-macos-arm64.dmg">Download for macOS</a></p>
 
 https://github.com/user-attachments/assets/c81f8c07-835d-4d37-87cf-926caa0fe6c1
 
@@ -78,14 +78,14 @@ Useful local development script modes:
 
 ## Release Build, Signing, and Notarization
 
-The app checks `https://api.github.com/repos/pixel-point/media-downloader/releases/latest` for updates and compares the latest release tag, such as `v0.1.0`, with `CFBundleShortVersionString`.
+The app checks `https://api.github.com/repos/pixel-point/media-downloader/releases/latest` for updates and compares the latest release tag, such as `v0.2.0`, with `CFBundleShortVersionString`.
 
 Release credentials should live in a local `.env` file copied from `.env.example`. Do not commit `.env`, `.p8`, `.p12`, certificates, provisioning profiles, or private keys; the repo ignores them.
 
 To create and publish signed, notarized macOS zip and drag-to-Applications DMG artifacts:
 
 ```sh
-./script/release_macos.sh v0.1.0
+./script/release_macos.sh v0.2.0
 ```
 
 To create local signed and notarized artifacts without publishing a GitHub release:
