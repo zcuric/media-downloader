@@ -6,7 +6,7 @@ Media Downloader lets you download, quickly copy, reveal, and trim videos from s
 
 ## Download
 
-Download the latest app here: [Download Media Downloader](https://example.com/media-downloader)
+Download the latest app here: [Download](https://github.com/pixel-point/media-downloader/releases/download/v0.1.0/MediaDownloader-0.1.0-macos-arm64.zip)
 
 Replace this link with the real app source when it is available.
 
