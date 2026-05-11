@@ -17,6 +17,13 @@ enum MediaDownloaderApp {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private enum MenuKeyEquivalent {
+        static let comma = ","
+        static let h = "h"
+        static let m = "m"
+        static let q = "q"
+    }
+
     private let model = AppModel()
     private let preferences = PreferencesStore()
     private var window: SpotlightWindow?
@@ -30,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKeyObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.mainMenu = makeMainMenu()
         activationHotKey.registerActivationHotKey(preferences.hotKeyShortcut(for: .activateApp))
         hotKeyObserver = NotificationCenter.default.addObserver(
             forName: .mediaDownloaderHotKeysDidChange,
@@ -226,6 +234,121 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateActivationHotKey() {
         activationHotKey.registerActivationHotKey(preferences.hotKeyShortcut(for: .activateApp))
+    }
+
+    @objc private func showAboutPanel(_ sender: Any?) {
+        NSApp.orderFrontStandardAboutPanel(sender)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func showSettingsWindow(_ sender: Any?) {
+        model.showSettings()
+    }
+
+    private func makeMainMenu() -> NSMenu {
+        let mainMenu = NSMenu(title: "Main Menu")
+
+        let appMenuItem = NSMenuItem()
+        let windowMenuItem = NSMenuItem()
+        appMenuItem.title = "MediaDownloader"
+        windowMenuItem.title = "Window"
+
+        mainMenu.addItem(appMenuItem)
+        mainMenu.addItem(windowMenuItem)
+
+        let appMenu = NSMenu(title: "MediaDownloader")
+        appMenuItem.submenu = appMenu
+
+        appMenu.addItem(NSMenuItem(
+            title: "About MediaDownloader",
+            action: #selector(showAboutPanel(_:)),
+            keyEquivalent: ""
+        ))
+        appMenu.addItem(.separator())
+
+        let settingsItem = NSMenuItem(
+            title: "Settings…",
+            action: #selector(showSettingsWindow(_:)),
+            keyEquivalent: MenuKeyEquivalent.comma
+        )
+        settingsItem.keyEquivalentModifierMask = [.command]
+        appMenu.addItem(settingsItem)
+        appMenu.addItem(.separator())
+
+        let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
+        let servicesMenu = NSMenu(title: "Services")
+        servicesItem.submenu = servicesMenu
+        appMenu.addItem(servicesItem)
+        NSApp.servicesMenu = servicesMenu
+
+        appMenu.addItem(.separator())
+
+        let hideItem = NSMenuItem(
+            title: "Hide MediaDownloader",
+            action: #selector(NSApplication.hide(_:)),
+            keyEquivalent: MenuKeyEquivalent.h
+        )
+        hideItem.target = NSApp
+        hideItem.keyEquivalentModifierMask = [.command]
+        appMenu.addItem(hideItem)
+
+        let hideOthersItem = NSMenuItem(
+            title: "Hide Others",
+            action: #selector(NSApplication.hideOtherApplications(_:)),
+            keyEquivalent: MenuKeyEquivalent.h
+        )
+        hideOthersItem.target = NSApp
+        hideOthersItem.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(hideOthersItem)
+
+        let showAllItem = NSMenuItem(
+            title: "Show All",
+            action: #selector(NSApplication.unhideAllApplications(_:)),
+            keyEquivalent: ""
+        )
+        showAllItem.target = NSApp
+        appMenu.addItem(showAllItem)
+
+        appMenu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: "Quit MediaDownloader",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: MenuKeyEquivalent.q
+        )
+        quitItem.target = NSApp
+        quitItem.keyEquivalentModifierMask = [.command]
+        appMenu.addItem(quitItem)
+
+        let windowMenu = NSMenu(title: "Window")
+        windowMenuItem.submenu = windowMenu
+        NSApp.windowsMenu = windowMenu
+
+        let minimizeItem = NSMenuItem(
+            title: "Minimize",
+            action: #selector(NSWindow.performMiniaturize(_:)),
+            keyEquivalent: MenuKeyEquivalent.m
+        )
+        minimizeItem.keyEquivalentModifierMask = [.command]
+        windowMenu.addItem(minimizeItem)
+
+        let zoomItem = NSMenuItem(
+            title: "Zoom",
+            action: #selector(NSWindow.performZoom(_:)),
+            keyEquivalent: ""
+        )
+        windowMenu.addItem(zoomItem)
+        windowMenu.addItem(.separator())
+
+        let bringAllToFrontItem = NSMenuItem(
+            title: "Bring All to Front",
+            action: #selector(NSApplication.arrangeInFront(_:)),
+            keyEquivalent: ""
+        )
+        bringAllToFrontItem.target = NSApp
+        windowMenu.addItem(bringAllToFrontItem)
+
+        return mainMenu
     }
 
     private func runInTerminal(command: String) throws {
