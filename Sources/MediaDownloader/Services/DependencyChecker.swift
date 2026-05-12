@@ -27,6 +27,10 @@ struct DependencyStatus: Equatable {
         Self.joinedNames(for: missingTools)
     }
 
+    var installedToolNames: String {
+        Self.joinedNames(for: installedTools)
+    }
+
     var installCommand: String? {
         guard hasHomebrew, !missingTools.isEmpty else { return nil }
         return "brew install \(missingTools.map(\.executableName).joined(separator: " "))"
@@ -55,29 +59,29 @@ enum DependencyChecker {
 
     static func installPrompt(for status: DependencyStatus) -> String {
         guard !status.isSatisfied else {
-            return "ffmpeg and yt-dlp are already installed."
-        }
-
-        let verifyCommands = status.missingTools
-            .map(verifyCommand(for:))
-            .joined(separator: " and ")
-
-        if let installCommand = status.installCommand {
             return """
-            Install the missing dependency \(status.missingToolNames) with Homebrew:
-            \(installCommand)
-
-            Then verify it works:
-            \(verifyCommands)
+            I am setting up MediaDownloader on macOS. Please verify whether FFmpeg and yt-dlp are installed and confirm everything required is ready. If anything is missing, install only the missing dependencies and verify they work before telling me to continue.
             """
         }
 
-        return """
-        Install Homebrew from \(homebrewInstallURL.absoluteString), then install the missing dependency \(status.missingToolNames):
-        brew install \(status.missingTools.map(\.executableName).joined(separator: " "))
+        let installedSummary = status.installedTools.isEmpty
+            ? "The app did not detect any of the required tools yet."
+            : "The app already detected \(status.installedToolNames)."
+        let missingSummary = "The app still needs \(status.missingToolNames)."
+        let homebrewSummary = status.hasHomebrew
+            ? "Homebrew appears to be installed, so you can prefer it if that makes sense."
+            : "Homebrew does not appear to be installed, so choose the best installation path for this Mac."
 
-        Then verify it works:
-        \(verifyCommands)
+        return """
+        I am setting up MediaDownloader on macOS. Please check whether FFmpeg and yt-dlp are already installed, install only what is missing, and verify the setup when you are done.
+
+        \(installedSummary)
+        \(missingSummary)
+        \(homebrewSummary)
+
+        When you finish, verify with:
+        ffmpeg -version
+        yt-dlp --version
         """
     }
 

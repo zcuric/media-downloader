@@ -17,11 +17,19 @@ enum MediaDownloaderApp {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private enum SetupWindowMetrics {
+        static let width: CGFloat = 600
+        static let initialHeight: CGFloat = 600
+        static let minimumHeight: CGFloat = 560
+        static let verticalMargin: CGFloat = 24
+    }
+
     private let model = AppModel()
     private let preferences = PreferencesStore()
     private var window: SpotlightWindow?
     private var setupWindow: SpotlightWindow?
     private var dependencyStatus = DependencyChecker.check()
+    private var setupWindowHeight: CGFloat = SetupWindowMetrics.initialHeight
     private let forceSetupWindow = ProcessInfo.processInfo.arguments.contains("--show-dependency-setup")
     private var didPassForcedSetup = false
     private lazy var activationHotKey = GlobalHotKeyManager { [weak self] in
@@ -137,7 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let window = SpotlightWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 470),
+            contentRect: NSRect(x: 0, y: 0, width: SetupWindowMetrics.width, height: setupWindowHeight),
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -162,9 +170,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 onCopyPrompt: copyInstallPrompt,
                 onInstallWithHomebrew: installMissingDependencies,
                 onOpenHomebrew: openHomebrewWebsite,
-                onCheckAgain: checkDependenciesAgain
+                onCheckAgain: checkDependenciesAgain,
+                onPreferredHeightChange: { [weak self] preferredHeight in
+                    self?.updateSetupWindowHeight(preferredHeight, animated: true)
+                }
             )
-            .frame(width: 600, height: 470)
         )
     }
 
@@ -226,6 +236,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateActivationHotKey() {
         activationHotKey.registerActivationHotKey(preferences.hotKeyShortcut(for: .activateApp))
+    }
+
+    private func updateSetupWindowHeight(_ preferredHeight: CGFloat, animated: Bool) {
+        let visibleFrame = currentDisplayVisibleFrame()
+        let clampedHeight = min(
+            max(SetupWindowMetrics.minimumHeight, preferredHeight),
+            visibleFrame.height - SetupWindowMetrics.verticalMargin
+        )
+        setupWindowHeight = clampedHeight
+
+        guard let setupWindow else { return }
+
+        let targetFrame = NSRect(
+            x: visibleFrame.midX - SetupWindowMetrics.width / 2,
+            y: visibleFrame.midY - clampedHeight / 2,
+            width: SetupWindowMetrics.width,
+            height: clampedHeight
+        )
+
+        guard setupWindow.frame != targetFrame else { return }
+        setupWindow.setFrame(targetFrame, display: true, animate: animated)
     }
 
     private func runInTerminal(command: String) throws {

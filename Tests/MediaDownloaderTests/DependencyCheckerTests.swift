@@ -21,7 +21,28 @@ final class DependencyCheckerTests: XCTestCase {
         XCTAssertEqual(status.installCommand, "brew install yt-dlp")
     }
 
-    func testInstallPromptFallsBackToHomebrewBootstrapWhenMissing() {
+    func testInstallPromptMentionsDetectedStateAndVerification() throws {
+        let sandbox = try makeSandbox()
+        defer { try? FileManager.default.removeItem(at: sandbox) }
+
+        try makeExecutable(named: "ffmpeg", in: sandbox)
+        try makeExecutable(named: "brew", in: sandbox)
+
+        let status = DependencyChecker.check(
+            environment: ["PATH": sandbox.path],
+            extraSearchDirectories: []
+        )
+
+        let prompt = DependencyChecker.installPrompt(for: status)
+
+        XCTAssertTrue(prompt.contains("already detected FFmpeg"))
+        XCTAssertTrue(prompt.contains("still needs yt-dlp"))
+        XCTAssertTrue(prompt.contains("Homebrew appears to be installed"))
+        XCTAssertTrue(prompt.contains("ffmpeg -version"))
+        XCTAssertTrue(prompt.contains("yt-dlp --version"))
+    }
+
+    func testInstallPromptFallsBackToAgentGuidanceWhenMissing() {
         let status = DependencyChecker.check(
             environment: ["PATH": "/tmp/definitely-missing-tools"],
             extraSearchDirectories: []
@@ -29,8 +50,9 @@ final class DependencyCheckerTests: XCTestCase {
 
         let prompt = DependencyChecker.installPrompt(for: status)
 
-        XCTAssertTrue(prompt.contains("https://brew.sh"))
-        XCTAssertTrue(prompt.contains("brew install ffmpeg yt-dlp"))
+        XCTAssertTrue(prompt.contains("did not detect any of the required tools"))
+        XCTAssertTrue(prompt.contains("still needs FFmpeg and yt-dlp"))
+        XCTAssertTrue(prompt.contains("Homebrew does not appear to be installed"))
         XCTAssertTrue(prompt.contains("ffmpeg -version"))
         XCTAssertTrue(prompt.contains("yt-dlp --version"))
     }
